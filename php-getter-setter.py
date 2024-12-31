@@ -3,12 +3,18 @@ import re
 import sublime
 import sublime_plugin
 
-# sys.path.append(
-#     os.path.join(
-#         os.path.dirname(os.path.realpath(__file__))
-#     )
-# )
 from .user_templates import *
+
+__all__ = [
+    "PhpGenerateGetterForCommand",
+    "PhpGenerateSetterForCommand",
+    "PhpGenerateGetterSetterForCommand",
+    "PhpGenerateGettersCommand",
+    "PhpGenerateSettersCommand",
+    "PhpGenerateGettersSettersCommand",
+    "PhpGenerateGettersSetterUnavailable",
+    "plugin_loaded"
+]
 
 
 def msg(msg):
@@ -23,7 +29,7 @@ class Prefs:
         self.data = {}
 
     def get(self, name):
-        if (False == self.loaded):
+        if not self.loaded:
             self.load()
 
         return self.data[name]
@@ -51,7 +57,7 @@ class Prefs:
 
         self.loaded = True
 
-class TemplateManager(object):
+class TemplateManager:
     templates = {}
 
     def register(self, template):
@@ -61,7 +67,7 @@ class TemplateManager(object):
     def get(self, name):
         return self.templates[name]
 
-class Variable(object):
+class Variable:
     def __init__(self, name, visibility, typeName=None, description=None):
         self.name = name
         self.type = typeName
@@ -102,7 +108,7 @@ class Variable(object):
 
         if 'camelCase' == style:
             # FIXME how does this differ from the else?
-            name = ' '.join(re.findall('(?:[^_a-z]{0,2})[^_A-Z]+', name)).lower()
+            name = ' '.join(re.findall(r'(?:[^_a-z]{0,2})[^_A-Z]+', name)).lower()
         else:
             name = name.replace('_', ' ')
 
@@ -166,14 +172,14 @@ class Variable(object):
         if self.type in self.Prefs.get('typeHintIgnore'):
             return ''
 
-        if self.type.find(" ") > -1 or self.type.find("|") > -1:
+        if self.type.find(" ") > -1 or self.type.find(r"|") > -1:
             msg("'%s' is more than one type, switching to no type hint" % self.type)
             return ""
 
         return self.type
 
 
-class DocBlock(object):
+class DocBlock:
     """
         docblock text to a class
     """
@@ -209,7 +215,7 @@ class DocBlock(object):
         for line in lines:
             line = line.strip(' \t*/').rstrip('.')
             if line.startswith('@'):
-                nameMatches = re.findall('\@(\w+) (:?.*)[ ]?.*', line)
+                nameMatches = re.findall(r'\@(\w+) (:?.*)[ ]?.*', line)
                 if len(nameMatches) > 0:
                     name = nameMatches[0][0]
                     value = nameMatches[0][1]
@@ -225,14 +231,14 @@ class DocBlock(object):
         self.setDescription("\n".join(description).rstrip("\n"))
 
 
-class Parser(object):
+class Parser:
     """
         parses text to get class variables so that make the magic can happen
     """
     def __init__(self, content):
         self.content = content
-        self.functionRegExp = ".*function.*%s\("
-        self.variableRegExp = '((?:private|public|protected)(?:[ ]+\S{0,}){0,2}[ ]{0,}(?:\$.*?)[ |=|;].*)\n'
+        self.functionRegExp = r".*function.*%s\("
+        self.variableRegExp = r'((?:private|public|protected)(?:[ ]+\S{0,}){0,2}[ ]{0,}(?:\$.*?)[ |=|;].*)\n'
 
     def getContent(self):
         return self.content
@@ -291,13 +297,13 @@ class Parser(object):
         """
             Returns a Variable object populated from the parsed code
         """
-        nameMatches = re.findall('\$(.*?)[ |=|;]', line)
+        nameMatches = re.findall(r'\$(.*?)[ |=|;]', line)
         name = "Unknown"
         if len(nameMatches) >= 0:
             name = nameMatches[0]
 
         visibility = 'public'
-        visibilityMatches = re.findall('^(public|protected|private)', line)
+        visibilityMatches = re.findall(r'^(public|protected|private)', line)
 
         if len(visibilityMatches) >= 0:
             visibility = visibilityMatches[0]
@@ -351,10 +357,10 @@ class Base(sublime_plugin.TextCommand):
         pos = 0
         lastPos = 1
 
-        pos = view.find('\{', 0)
+        pos = view.find(r'\{', 0)
 
         while True:
-            pos = view.find('\}', pos.end())
+            pos = view.find(r'\}', pos.end())
             if (pos.begin() == -1):
                 break
             lastPos = pos.begin()
@@ -414,7 +420,10 @@ class Base(sublime_plugin.TextCommand):
         self.view.insert(edit, lastPos, text)
 
     def isPhpSyntax(self):
-        return re.search(".*\PHP.sublime-syntax", self.view.settings().get('syntax')) is not None
+        sel = self.view.sel()
+        if not sel:
+            return False
+        return self.view.match_selector(sel[0].b, "embedding.php, text.html.php")
 
     def is_enabled(self):
         return self.isPhpSyntax()
@@ -528,9 +537,9 @@ class PhpGenerateGettersSetterUnavailable(Base):
     def description(self):
         return "Only available for PHP syntax buffers"
 
-class PSR2(object):
-  name = "PSR2"
-  style = 'camelCase'
+class PSR2:
+    name = "PSR2"
+    style = "camelCase"
 
   getter = """
     /**
@@ -556,7 +565,7 @@ class PSR2(object):
     }
 """
 
-class camelCase(object):
+class camelCase:
     name = "camelCase"
     style = 'camelCase'
     getter = """
@@ -606,7 +615,7 @@ class camelCaseFluent(camelCase):
     }
 """
 
-class snakeCase(object):
+class snakeCase:
     name = "snakeCase"
     style = 'snakeCase'
     getter = """
