@@ -16,9 +16,11 @@ __all__ = [
     "plugin_loaded"
 ]
 
+DEBUG = False
 
 def msg(msg):
-    print ("[PHP Getters and Setters] %s" % msg)
+    if DEBUG:
+        print("[PHP Getters and Setters] %s" % msg)
 
 class Prefs:
     """
