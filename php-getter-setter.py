@@ -72,11 +72,11 @@ class Variable:
         self.name = name
         self.type = typeName
         self.description = description
-        self.Prefs = Prefs
-        if self.Prefs.get('ignoreVisibility'):
+        self.prefs = prefs
+        if self.prefs.get('ignoreVisibility'):
             visibility = 'public'
         self.visibility = visibility
-        self.template = TemplateManager.get(self.Prefs.get('template'))
+        self.template = templateManager.get(self.prefs.get('template'))
         self.style = self.template.style
 
     def getName(self):
@@ -169,7 +169,7 @@ class Variable:
         return self.type
 
     def getTypeHint(self):
-        if self.type in self.Prefs.get('typeHintIgnore'):
+        if self.type in self.prefs.get('typeHintIgnore'):
             return ''
 
         if self.type.find(" ") > -1 or self.type.find(r"|") > -1:
@@ -338,7 +338,7 @@ class Base(sublime_plugin.TextCommand):
         sublime_plugin.TextCommand.__init__(self, arg)
         self.variables = None
         self.parser = None
-        self.Prefs = Prefs
+        self.prefs = prefs
         self.onlyForVar = None
 
     def onlyForVar(self, varName):
@@ -397,7 +397,7 @@ class Base(sublime_plugin.TextCommand):
             msg("function %s already present, skipping" % variable.getGetterFunctionName())
             return ''
 
-        template = TemplateManager.get(Prefs.get('template'))
+        template = templateManager.get(prefs.get('template'))
         code = self.generateFunctionCode(template.getter, variable)
 
         return code
@@ -408,7 +408,7 @@ class Base(sublime_plugin.TextCommand):
             msg("function %s already present, skipping" % variable.getSetterFunctionName())
             return ''
 
-        template = TemplateManager.get(Prefs.get('template'))
+        template = templateManager.get(prefs.get('template'))
         code = self.generateFunctionCode(template.setter, variable)
         # if type hinting is not to be show we get "( " instead of (
         code = code.replace('( ', '(')
@@ -514,7 +514,7 @@ class PhpGenerateGettersSettersCommand(Base):
             if args['name'] is not None and variable.getName() != args['name']:
                 continue
 
-            if self.Prefs.setterBeforeGetter:
+            if self.prefs.setterBeforeGetter:
                 code += self.generateSetterFunction(parser, variable)
                 code += self.generateGetterFunction(parser, variable)
             else:
@@ -664,16 +664,16 @@ class snakeCaseFluent(snakeCase):
     }
 """
 
-Prefs = Prefs()
+prefs = Prefs()
 
-TemplateManager = TemplateManager()
+templateManager = TemplateManager()
 
 def plugin_loaded():
-    TemplateManager.register(PSR2())
-    TemplateManager.register(camelCase())
-    TemplateManager.register(camelCaseFluent())
-    TemplateManager.register(snakeCase())
-    TemplateManager.register(snakeCaseFluent())
+    templateManager.register(PSR2())
+    templateManager.register(camelCase())
+    templateManager.register(camelCaseFluent())
+    templateManager.register(snakeCase())
+    templateManager.register(snakeCaseFluent())
 
-    for template in Prefs.get('registerTemplates'):
-        TemplateManager.register(eval(template+'()'))
+    for template in prefs.get('registerTemplates'):
+        templateManager.register(eval(template+'()'))
