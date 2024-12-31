@@ -22,42 +22,9 @@ def msg(msg):
     if DEBUG:
         print("[PHP Getters and Setters] %s" % msg)
 
-class Prefs:
-    """
-        Plugin preferences
-    """
-    def __init__(self):
-        self.loaded = False
-        self.data = {}
+def prefs():
+    return sublime.load_settings('php-getters-setters.sublime-settings')
 
-    def get(self, name):
-        if not self.loaded:
-            self.load()
-
-        return self.data[name]
-
-    def load(self):
-        if self.loaded:
-            return
-
-        settings = sublime.load_settings('php-getters-setters.sublime-settings')
-
-        self.data['typeHintIgnore'] = settings.get('type_hint_ignore')
-        msg("ignored type hinting var types %s" % self.data['typeHintIgnore'])
-
-        self.data['template'] = settings.get('template')
-        msg("template is  '%s'" % self.data['template'])
-
-        self.data['registerTemplates'] = settings.get('registerTemplates', [])
-        msg("register extra user templates %s" % self.data['registerTemplates'])
-
-        self.data['ignoreVisibility'] = settings.get('ignore_visibility', [])
-        msg("ignoring visibility to getters and setters")
-
-        self.setterBeforeGetter = settings.get('setter_before_getter', False)
-        msg("setterBeforeGetter is %s" % str(self.setterBeforeGetter))
-
-        self.loaded = True
 
 class TemplateManager:
     templates = {}
@@ -71,14 +38,14 @@ class TemplateManager:
 
 class Variable:
     def __init__(self, name, visibility, typeName=None, description=None):
+        settings = prefs()
         self.name = name
         self.type = typeName
         self.description = description
-        self.prefs = prefs
-        if self.prefs.get('ignoreVisibility'):
-            visibility = 'public'
+        if settings.get("ignore_visibility", False):
+            visibility = "public"
         self.visibility = visibility
-        self.template = templateManager.get(self.prefs.get('template'))
+        self.template = templateManager.get(settings.get("template"))
         self.style = self.template.style
 
     def getName(self):
@@ -171,7 +138,7 @@ class Variable:
         return self.type
 
     def getTypeHint(self):
-        if self.type in self.prefs.get('typeHintIgnore'):
+        if self.type in prefs().get('type_hint_ignore', []):
             return ''
 
         if self.type.find(" ") > -1 or self.type.find(r"|") > -1:
@@ -340,7 +307,6 @@ class Base(sublime_plugin.TextCommand):
         sublime_plugin.TextCommand.__init__(self, arg)
         self.variables = None
         self.parser = None
-        self.prefs = prefs
         self.onlyForVar = None
 
     def onlyForVar(self, varName):
@@ -399,7 +365,7 @@ class Base(sublime_plugin.TextCommand):
             msg("function %s already present, skipping" % variable.getGetterFunctionName())
             return ''
 
-        template = templateManager.get(prefs.get('template'))
+        template = templateManager.get(prefs().get('template', "PSR2"))
         code = self.generateFunctionCode(template.getter, variable)
 
         return code
@@ -410,7 +376,7 @@ class Base(sublime_plugin.TextCommand):
             msg("function %s already present, skipping" % variable.getSetterFunctionName())
             return ''
 
-        template = templateManager.get(prefs.get('template'))
+        template = templateManager.get(prefs().get('template', "PSR2"))
         code = self.generateFunctionCode(template.setter, variable)
         # if type hinting is not to be show we get "( " instead of (
         code = code.replace('( ', '(')
@@ -510,13 +476,15 @@ class PhpGenerateGettersSettersCommand(Base):
         if not 'name' in args:
             args['name'] = None
 
+        settings = prefs()
+
         parser = self.getParser(self.getContent())
         code = ''
         for variable in parser.getClassVariables():
             if args['name'] is not None and variable.getName() != args['name']:
                 continue
 
-            if self.prefs.setterBeforeGetter:
+            if settings.get("setter_before_getter", False):
                 code += self.generateSetterFunction(parser, variable)
                 code += self.generateGetterFunction(parser, variable)
             else:
@@ -666,8 +634,6 @@ class snakeCaseFluent(snakeCase):
     }
 """
 
-prefs = Prefs()
-
 templateManager = TemplateManager()
 
 def plugin_loaded():
@@ -677,5 +643,5 @@ def plugin_loaded():
     templateManager.register(snakeCase())
     templateManager.register(snakeCaseFluent())
 
-    for template in prefs.get('registerTemplates'):
+    for template in prefs().get('user_templates', []):
         templateManager.register(eval(template+'()'))
