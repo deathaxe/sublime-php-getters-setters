@@ -303,22 +303,8 @@ class Parser:
         return variablesList
 
 class Base(sublime_plugin.TextCommand):
-    def __init__(self, arg):
-        sublime_plugin.TextCommand.__init__(self, arg)
-        self.variables = None
-        self.parser = None
-        self.onlyForVar = None
-
-    def onlyForVar(self, varName):
-        self.onlyForVar = varName
-
     def getContent(self):
         return self.view.substr(sublime.Region(0, self.view.size()))
-
-    def getParser(self, content = ''):
-        self.parser = Parser(content)
-
-        return self.parser
 
     def findLastBracket(self):
         view = self.view
@@ -334,13 +320,6 @@ class Base(sublime_plugin.TextCommand):
             lastPos = pos.begin()
 
         return lastPos
-
-    def getVariables(self, parser):
-        filename = self.view.file_name()
-        parser = self.getParser(open(filename).read())
-        self.variables = parser.getClassVariables()
-
-        return self.variables
 
     def generateFunctionCode(self, template, variable):
         substitutions = {
@@ -406,7 +385,7 @@ class PhpGenerateFor(Base):
     def run(self, edit):
         self.edit = edit
 
-        parser = self.getParser(self.getContent())
+        parser = Parser(self.getContent())
 
         self.vars = []
 
@@ -420,7 +399,7 @@ class PhpGenerateFor(Base):
         if index == -1: #escaped
             return
         name = self.vars[index][0]
-        parser = self.getParser(self.getContent())
+        parser = Parser(self.getContent())
         for variable in parser.getClassVariables():
             if name == variable.getName():
                 if 'getter' == self.what:
@@ -446,7 +425,7 @@ class PhpGenerateGettersCommand(Base):
         if not 'name' in args:
             args['name'] = None
 
-        parser = self.getParser(self.getContent())
+        parser = Parser(self.getContent())
         code = ''
         for variable in parser.getClassVariables():
             if args['name'] is not None and variable.getName() != args['name']:
@@ -461,7 +440,7 @@ class PhpGenerateSettersCommand(Base):
         if not 'name' in args:
             args['name'] = None
 
-        parser = self.getParser(self.getContent())
+        parser = Parser(self.getContent())
         code = ''
         for variable in parser.getClassVariables():
             if args['name'] is not None and variable.getName() != args['name']:
@@ -478,7 +457,7 @@ class PhpGenerateGettersSettersCommand(Base):
 
         settings = prefs()
 
-        parser = self.getParser(self.getContent())
+        parser = Parser(self.getContent())
         code = ''
         for variable in parser.getClassVariables():
             if args['name'] is not None and variable.getName() != args['name']:
