@@ -1,0 +1,8 @@
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.pyright]
+pythonVersion = '3.8'
+venvPath = ''
+venv = ''

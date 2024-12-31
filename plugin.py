@@ -1,7 +1,7 @@
-import sys
 import re
 import sublime
 import sublime_plugin
+import sys
 
 from .user_templates import *
 
@@ -13,17 +13,19 @@ __all__ = [
     "PhpGenerateSettersCommand",
     "PhpGenerateGettersSettersCommand",
     "PhpGenerateGettersSetterUnavailable",
-    "plugin_loaded"
+    "plugin_loaded",
 ]
 
 DEBUG = False
+
 
 def msg(msg):
     if DEBUG:
         print("[PHP Getters and Setters] %s" % msg)
 
+
 def prefs():
-    return sublime.load_settings('PHP Getters Setters.sublime-settings')
+    return sublime.load_settings("PHP Getters Setters.sublime-settings")
 
 
 class TemplateManager:
@@ -35,6 +37,7 @@ class TemplateManager:
 
     def get(self, name):
         return self.templates[name]
+
 
 class Variable:
     def __init__(self, name, visibility, typeName=None, description=None):
@@ -56,17 +59,17 @@ class Variable:
 
     def getVisibilityPrefix(self):
         visibility = self.visibility
-        Prefix = ''
+        Prefix = ""
 
-        if (visibility == 'private'):
-            Prefix = '_'
+        if visibility == "private":
+            Prefix = "_"
 
         return Prefix
 
     def getParam(self):
         name = self.name
 
-        if (name[0] == '_'):
+        if name[0] == "_":
             name = name[1:]
 
         return name
@@ -75,17 +78,17 @@ class Variable:
         style = self.style
         name = self.getName()
 
-        if 'camelCase' == style:
+        if "camelCase" == style:
             # FIXME how does this differ from the else?
-            name = ' '.join(re.findall(r'(?:[^_a-z]{0,2})[^_A-Z]+', name)).lower()
+            name = " ".join(re.findall(r"(?:[^_a-z]{0,2})[^_A-Z]+", name)).lower()
         else:
-            name = name.replace('_', ' ')
+            name = name.replace("_", " ")
 
         return name
 
     def getDescription(self):
         if self.description is None or "" == self.description:
-            self.description = 'value of %s' % self.getName() # get description from name
+            self.description = "value of %s" % self.getName()  # get description from name
         return self.description
 
     def getPartialFunctionName(self):
@@ -93,15 +96,15 @@ class Variable:
         name = self.getName()
         length = len(name)
 
-        if length > 1 and name[0] == '_' and name[1].islower() and name[2].isupper():
+        if length > 1 and name[0] == "_" and name[1].islower() and name[2].isupper():
             name = name[2:]  # _aTest
         elif length > 1 and (name[0].islower() and name[1].isupper()):
             name = name[1:]  # aTest
-        elif length > 1 and (name[0] == '_'):
+        elif length > 1 and (name[0] == "_"):
             name = name[1:]  # _test OR _Test
 
-        if 'camelCase' == style:
-            var = re.sub(r'_([a-z])', lambda pat: pat.group(1).upper(), name)
+        if "camelCase" == style:
+            var = re.sub(r"_([a-z])", lambda pat: pat.group(1).upper(), name)
             var = var[0].upper() + var[1:]
             var = var.replace("_", "")
         else:
@@ -110,13 +113,13 @@ class Variable:
         return var
 
     def getGetterPrefix(self):
-        return "is" if 'bool' in self.getType() else "get"
+        return "is" if "bool" in self.type else "get"
 
     def getGetterFunctionName(self):
         style = self.style
         getterPrefix = self.getGetterPrefix()
 
-        if 'camelCase' == style:
+        if "camelCase" == style:
             return getterPrefix + "%s" % self.getPartialFunctionName()
 
         return getterPrefix + "_%s" % self.getPartialFunctionName()
@@ -129,7 +132,7 @@ class Variable:
         visPrefix = self.getVisibilityPrefix()
         setterPrefix = self.getSetterPrefix()
 
-        if 'camelCase' == style:
+        if "camelCase" == style:
             return visPrefix + setterPrefix + "%s" % self.getPartialFunctionName()
 
         return visPrefix + setterPrefix + "_%s" % self.getPartialFunctionName()
@@ -138,8 +141,8 @@ class Variable:
         return self.type
 
     def getTypeHint(self):
-        if self.type in prefs().get('type_hint_ignore', []):
-            return ''
+        if self.type in prefs().get("type_hint_ignore", []):
+            return ""
 
         if self.type.find(" ") > -1 or self.type.find(r"|") > -1:
             msg("'%s' is more than one type, switching to no type hint" % self.type)
@@ -150,11 +153,12 @@ class Variable:
 
 class DocBlock:
     """
-        docblock text to a class
+    docblock text to a class
     """
+
     def __init__(self):
         self.tags = {}
-        self.description = ''
+        self.description = ""
 
     def hasTag(self, name):
         return name in self.tags
@@ -182,14 +186,14 @@ class DocBlock:
         description = []
 
         for line in lines:
-            line = line.strip(' \t*/').rstrip('.')
-            if line.startswith('@'):
-                nameMatches = re.findall(r'\@(\w+) (:?.*)[ ]?.*', line)
+            line = line.strip(" \t*/").rstrip(".")
+            if line.startswith("@"):
+                nameMatches = re.findall(r"\@(\w+) (:?.*)[ ]?.*", line)
                 if len(nameMatches) > 0:
                     name = nameMatches[0][0]
                     value = nameMatches[0][1]
 
-                    self.addTag(name.strip('@'), value)
+                    self.addTag(name.strip("@"), value)
                 # [name, value, other] = line.split(" ", 2)
                 else:
                     msg("Error: could not parse line %s" % line)
@@ -202,19 +206,22 @@ class DocBlock:
 
 class Parser:
     """
-        parses text to get class variables so that make the magic can happen
+    parses text to get class variables so that make the magic can happen
     """
+
     def __init__(self, content):
         self.content = content
         self.functionRegExp = r".*function.*%s\("
-        self.variableRegExp = r'((?:private|public|protected)(?:[ ]+\S{0,}){0,2}[ ]{0,}(?:\$.*?)[ |=|;].*)\n'
+        self.variableRegExp = (
+            r"((?:private|public|protected)(?:[ ]+\S{0,}){0,2}[ ]{0,}(?:\$.*?)[ |=|;].*)\n"
+        )
 
     def getContent(self):
         return self.content
 
     def hasFunction(self, name):
         """
-            returns true if the function with the name _name_ is found in the code
+        returns true if the function with the name _name_ is found in the code
         """
         content = self.getContent()
         regExp = self.functionRegExp % name
@@ -241,10 +248,10 @@ class Parser:
             elif "" == line:
                 continue
 
-            elif '*/' == line:
+            elif "*/" == line:
                 commentStart = n + 1
 
-            elif '/**' == line:
+            elif "/**" == line:
                 commentEnd = n
                 break
 
@@ -264,15 +271,15 @@ class Parser:
 
     def _processVariable(self, line):
         """
-            Returns a Variable object populated from the parsed code
+        Returns a Variable object populated from the parsed code
         """
-        nameMatches = re.findall(r'\$(.*?)[ |=|;]', line)
+        nameMatches = re.findall(r"\$(.*?)[ |=|;]", line)
         name = "Unknown"
         if len(nameMatches) >= 0:
             name = nameMatches[0]
 
-        visibility = 'public'
-        visibilityMatches = re.findall(r'^(public|protected|private)', line)
+        visibility = "public"
+        visibilityMatches = re.findall(r"^(public|protected|private)", line)
 
         if len(visibilityMatches) >= 0:
             visibility = visibilityMatches[0]
@@ -281,26 +288,29 @@ class Parser:
         docblock = DocBlock()
         docblock.fromText(dockBlockText)
 
-        typeName = 'mixed'
-        if docblock.hasTag('var'):
-            typeName = docblock.getTag('var')
+        typeName = "mixed"
+        if docblock.hasTag("var"):
+            typeName = docblock.getTag("var")
         description = docblock.getDescription()
 
-        return Variable(name = name, visibility = visibility, typeName = typeName, description = description)
+        return Variable(
+            name=name, visibility=visibility, typeName=typeName, description=description
+        )
 
     def getClassVariables(self):
         """
-            returns a list of Variable objects, created from the parsed code
+        returns a list of Variable objects, created from the parsed code
         """
         content = self.getContent()
         variablesList = []
 
-        matches = re.findall(self.variableRegExp, content,  re.IGNORECASE)
+        matches = re.findall(self.variableRegExp, content, re.IGNORECASE)
         for match in matches:
             variable = self._processVariable(match)
             variablesList.append(variable)
 
         return variablesList
+
 
 class Base(sublime_plugin.TextCommand):
     def getContent(self):
@@ -311,11 +321,11 @@ class Base(sublime_plugin.TextCommand):
         pos = 0
         lastPos = 1
 
-        pos = view.find(r'\{', 0)
+        pos = view.find(r"\{", 0)
 
         while True:
-            pos = view.find(r'\}', pos.end())
-            if (pos.begin() == -1):
+            pos = view.find(r"\}", pos.end())
+            if pos.begin() == -1:
                 break
             lastPos = pos.begin()
 
@@ -333,32 +343,30 @@ class Base(sublime_plugin.TextCommand):
             "typeHint": variable.getTypeHint(),
             "humanName": variable.getHumanName(),
             "getterPrefix": variable.getGetterPrefix(),
-            "setterPrefix": variable.getSetterPrefix()
+            "setterPrefix": variable.getSetterPrefix(),
         }
 
         return template % substitutions
 
     def generateGetterFunction(self, parser, variable):
-
         if parser.hasFunction(variable.getGetterFunctionName()):
             msg("function %s already present, skipping" % variable.getGetterFunctionName())
-            return ''
+            return ""
 
-        template = templateManager.get(prefs().get('template', "PSR2"))
+        template = templateManager.get(prefs().get("template", "PSR2"))
         code = self.generateFunctionCode(template.getter, variable)
 
         return code
 
     def generateSetterFunction(self, parser, variable):
-
         if parser.hasFunction(variable.getSetterFunctionName()):
             msg("function %s already present, skipping" % variable.getSetterFunctionName())
-            return ''
+            return ""
 
-        template = templateManager.get(prefs().get('template', "PSR2"))
+        template = templateManager.get(prefs().get("template", "PSR2"))
         code = self.generateFunctionCode(template.setter, variable)
         # if type hinting is not to be show we get "( " instead of (
-        code = code.replace('( ', '(')
+        code = code.replace("( ", "(")
 
         return code
 
@@ -380,7 +388,7 @@ class Base(sublime_plugin.TextCommand):
 
 
 class PhpGenerateFor(Base):
-    what = 'getter'
+    what = "getter"
 
     def run(self, edit):
         self.edit = edit
@@ -393,74 +401,82 @@ class PhpGenerateFor(Base):
             item = [variable.getName(), variable.getDescription()]
             self.vars.append(item)
 
-        self.view.window().show_quick_panel(self.vars, self.write)
+        window = self.view.window()
+        if window:
+            window.show_quick_panel(self.vars, self.write)
 
     def write(self, index):
-        if index == -1: #escaped
+        if index == -1:  # escaped
             return
         name = self.vars[index][0]
         parser = Parser(self.getContent())
         for variable in parser.getClassVariables():
             if name == variable.getName():
-                if 'getter' == self.what:
+                if "getter" == self.what:
                     # code = self.generateGetterFunction(parser, variable)
-                    self.view.run_command('php_generate_getters', {'name': name})
-                elif 'setter' == self.what:
-                    self.view.run_command('php_generate_setters', {'name': name})
+                    self.view.run_command("php_generate_getters", {"name": name})
+                elif "setter" == self.what:
+                    self.view.run_command("php_generate_setters", {"name": name})
                 else:
-                    self.view.run_command('php_generate_getters_setters', {'name': name})
+                    self.view.run_command("php_generate_getters_setters", {"name": name})
                 # self.writeAtEnd(self.edit, code)
 
+
 class PhpGenerateGetterForCommand(PhpGenerateFor):
-    what = 'getter'
+    what = "getter"
+
 
 class PhpGenerateSetterForCommand(PhpGenerateFor):
-    what = 'setter'
+    what = "setter"
+
 
 class PhpGenerateGetterSetterForCommand(PhpGenerateFor):
-    what = 'getter-setter'
+    what = "getter-setter"
+
 
 class PhpGenerateGettersCommand(Base):
     def run(self, edit, **args):
-        if not 'name' in args:
-            args['name'] = None
+        if not "name" in args:
+            args["name"] = None
 
         parser = Parser(self.getContent())
-        code = ''
+        code = ""
         for variable in parser.getClassVariables():
-            if args['name'] is not None and variable.getName() != args['name']:
+            if args["name"] is not None and variable.getName() != args["name"]:
                 continue
 
             code += self.generateGetterFunction(parser, variable)
 
         self.writeAtEnd(edit, code)
 
+
 class PhpGenerateSettersCommand(Base):
     def run(self, edit, **args):
-        if not 'name' in args:
-            args['name'] = None
+        if not "name" in args:
+            args["name"] = None
 
         parser = Parser(self.getContent())
-        code = ''
+        code = ""
         for variable in parser.getClassVariables():
-            if args['name'] is not None and variable.getName() != args['name']:
+            if args["name"] is not None and variable.getName() != args["name"]:
                 continue
 
             code += self.generateSetterFunction(parser, variable)
 
         self.writeAtEnd(edit, code)
 
+
 class PhpGenerateGettersSettersCommand(Base):
     def run(self, edit, **args):
-        if not 'name' in args:
-            args['name'] = None
+        if not "name" in args:
+            args["name"] = None
 
         settings = prefs()
 
         parser = Parser(self.getContent())
-        code = ''
+        code = ""
         for variable in parser.getClassVariables():
-            if args['name'] is not None and variable.getName() != args['name']:
+            if args["name"] is not None and variable.getName() != args["name"]:
                 continue
 
             if settings.get("setter_before_getter", False):
@@ -486,11 +502,12 @@ class PhpGenerateGettersSetterUnavailable(Base):
     def description(self):
         return "Only available for PHP syntax buffers"
 
+
 class PSR2:
     name = "PSR2"
     style = "camelCase"
 
-  getter = """
+    getter = """
     /**
      * @return %(type)s
      */
@@ -500,7 +517,7 @@ class PSR2:
     }
 """
 
-  setter = """
+    setter = """
     /**
      * @param %(type)s $%(name)s
      *
@@ -514,9 +531,10 @@ class PSR2:
     }
 """
 
+
 class camelCase:
     name = "camelCase"
-    style = 'camelCase'
+    style = "camelCase"
     getter = """
     /**
      * Gets the %(description)s.
@@ -545,9 +563,10 @@ class camelCase:
     }
 """
 
+
 class camelCaseFluent(camelCase):
     name = "camelCaseFluent"
-    style = 'camelCase'
+    style = "camelCase"
     setter = """
     /**
      * Sets the %(description)s.
@@ -564,9 +583,10 @@ class camelCaseFluent(camelCase):
     }
 """
 
+
 class snakeCase:
     name = "snakeCase"
-    style = 'snakeCase'
+    style = "snakeCase"
     getter = """
     /**
      * Gets the %(description)s.
@@ -594,9 +614,10 @@ class snakeCase:
     }
 """
 
+
 class snakeCaseFluent(snakeCase):
     name = "snakeCaseFluent"
-    style = 'snakeCase'
+    style = "snakeCase"
     setter = """
     /**
      * Sets the %(description)s.
@@ -613,7 +634,9 @@ class snakeCaseFluent(snakeCase):
     }
 """
 
+
 templateManager = TemplateManager()
+
 
 def plugin_loaded():
     templateManager.register(PSR2())
@@ -622,5 +645,5 @@ def plugin_loaded():
     templateManager.register(snakeCase())
     templateManager.register(snakeCaseFluent())
 
-    for template in prefs().get('user_templates', []):
-        templateManager.register(eval(template+'()'))
+    for template in prefs().get("user_templates", []):
+        templateManager.register(eval(template + "()"))
