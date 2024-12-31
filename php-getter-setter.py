@@ -23,7 +23,7 @@ def msg(msg):
         print("[PHP Getters and Setters] %s" % msg)
 
 def prefs():
-    return sublime.load_settings('php-getters-setters.sublime-settings')
+    return sublime.load_settings('PHP Getters Setters.sublime-settings')
 
 
 class TemplateManager:

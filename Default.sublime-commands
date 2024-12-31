@@ -1,24 +1,36 @@
 [
 
-    {
-        "caption": "PHP: Generate Getters and Setters",
-        "command": "php_generate_getters_setters"
-    },
-    {
-        "caption": "PHP: Generate Getters",
-        "command": "php_generate_getters"
-    },
-    {
-        "caption": "PHP: Generate Setters",
-        "command": "php_generate_setters"
-    },
-    {
-        "command": "php_generate_getter_for",
-        "caption": "Generate Getter for ..."
-    },
-    {
-        "command": "php_generate_setter_for",
-        "caption": "Generate Setter for ..."
-    },
-    { "command": "php_generate_getter_setter_for", "caption": "Generate Getter and Setter for ..." },
+	{
+		"caption": "PHP: Generate Getters and Setters",
+		"command": "php_generate_getters_setters"
+	},
+	{
+		"caption": "PHP: Generate Getters",
+		"command": "php_generate_getters"
+	},
+	{
+		"caption": "PHP: Generate Setters",
+		"command": "php_generate_setters"
+	},
+	{
+		"caption": "PHP: Generate Getter for ...",
+		"command": "php_generate_getter_for"
+	},
+	{
+		"caption": "PHP: Generate Setter for ...",
+		"command": "php_generate_setter_for"
+	},
+	{
+		"caption": "PHP: Generate Getter and Setter for ...",
+		"command": "php_generate_getter_setter_for"
+	},
+	{
+		"caption": "Preferences: PHP Getters and Setters",
+		"command": "edit_settings",
+		"args": {
+			"base_file": "${packages}/PHP Getters and Setters/PHP Getters Setters.sublime-settings",
+			"default": "// See the left pane for the list of settings and valid values\n{\n\t$0\n}\n"
+		}
+	}
+
 ]
