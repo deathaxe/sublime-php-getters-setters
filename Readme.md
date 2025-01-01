@@ -86,21 +86,21 @@ These can be accessed via the context menu (right click on the source of any ope
 Settings Reference
 ------------------
 
-###ignore_visibility
+### ignore_visibility
 _type_    : **boolean**
 
 _default_ : **false**
 
 _description_: ignore visibility for setters generation
 
-###registerTemplates
+### user_templates
 _type_   : **array**
 
 _default_: **[]**
 
 _description_: the user templates to load
 
-###template
+### template
 _type_   : **string**
 
 _default_: **camelCaseFluent**
