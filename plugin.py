@@ -267,7 +267,7 @@ class Parser:
         """
         Returns a Variable object populated from the parsed code
         """
-        nameMatches = re.findall(r"\$(.*?)[ |=|;]", line)
+        nameMatches = re.findall(r"\$([A-Za-z_][\w_]*)", line)
         name = "Unknown"
         if len(nameMatches) >= 0:
             name = nameMatches[0]
