@@ -32,6 +32,8 @@ class TemplateManager:
     templates = {}
 
     def register(self, template):
+        template.getter = template.getter.replace("    ", "\t")
+        template.setter = template.setter.replace("    ", "\t")
         self.templates[template.name] = template
         msg("Registered template : '%s'" % template.name)
 
