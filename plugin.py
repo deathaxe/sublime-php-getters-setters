@@ -3,8 +3,6 @@ import sublime
 import sublime_plugin
 import sys
 
-from .user_templates import *
-
 __all__ = [
     "PhpGenerateGetterForCommand",
     "PhpGenerateSetterForCommand",
@@ -34,8 +32,13 @@ class TemplateManager:
     def register(self, template):
         template.getter = template.getter.replace("    ", "\t")
         template.setter = template.setter.replace("    ", "\t")
-        self.templates[template.name] = template
-        msg("Registered template : '%s'" % template.name)
+
+        name = template.__class__.__name__
+        suffix = "Template"
+        if name.endswith(suffix):
+            name = name[:-len(suffix)]
+        self.templates[name] = template
+        msg("Registered template : '%s'" % name)
 
     def get(self, name):
         return self.templates[name]
@@ -484,11 +487,28 @@ class PhpGenerateGettersSetterUnavailable(Base):
     def description(self):
         return "Only available for PHP syntax buffers"
 
+class BaseTemplate:
+    """
+    Possible substituations
 
-class PSR2:
-    name = "PSR2"
+    name
+    param
+    visibility
+    visibilityPrefix
+    type
+    normalizedName
+    description
+    typeHint
+    humanName
+    getterPrefix
+    setterPrefix
+    """
     style = "camelCase"
+    getter = ""
+    setter = ""
 
+
+class PSR2Template(BaseTemplate):
     getter = """
     /**
      * @return %(type)s
@@ -514,9 +534,7 @@ class PSR2:
 """
 
 
-class camelCase:
-    name = "camelCase"
-    style = "camelCase"
+class CamelCaseTemplate(BaseTemplate):
     getter = """
     /**
      * Gets the %(description)s.
@@ -546,9 +564,7 @@ class camelCase:
 """
 
 
-class camelCaseFluent(camelCase):
-    name = "camelCaseFluent"
-    style = "camelCase"
+class CamelCaseFluentTemplate(CamelCaseTemplate):
     setter = """
     /**
      * Sets the %(description)s.
@@ -566,8 +582,7 @@ class camelCaseFluent(camelCase):
 """
 
 
-class snakeCase:
-    name = "snakeCase"
+class SnakeCaseTemplate(BaseTemplate):
     style = "snakeCase"
     getter = """
     /**
@@ -597,9 +612,7 @@ class snakeCase:
 """
 
 
-class snakeCaseFluent(snakeCase):
-    name = "snakeCaseFluent"
-    style = "snakeCase"
+class SnakeCaseFluentTemplate(SnakeCaseTemplate):
     setter = """
     /**
      * Sets the %(description)s.
@@ -621,11 +634,17 @@ templateManager = TemplateManager()
 
 
 def plugin_loaded():
-    templateManager.register(PSR2())
-    templateManager.register(camelCase())
-    templateManager.register(camelCaseFluent())
-    templateManager.register(snakeCase())
-    templateManager.register(snakeCaseFluent())
+    templateManager.register(PSR2Template())
+    templateManager.register(CamelCaseTemplate())
+    templateManager.register(CamelCaseFluentTemplate())
+    templateManager.register(SnakeCaseTemplate())
+    templateManager.register(SnakeCaseFluentTemplate())
 
-    for template in prefs().get("user_templates", []):
-        templateManager.register(eval(template + "()"))
+    from . import user_templates
+
+    for name in dir(user_templates):
+        if name[0] == "_" or name == "BaseTemplate":
+            continue
+        template_class = getattr(user_templates, name)
+        if issubclass(template_class, user_templates.BaseTemplate):
+            templateManager.register(template_class())

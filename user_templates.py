@@ -1,4 +1,6 @@
-class BoringTemplate:
-    name = "boring"
-    getter = "foo"
-    setter = "bar"
+from .plugin import BaseTemplate
+
+# class BoringTemplate(BaseTemplate):
+#     style = "camelCase"
+#     getter = "foo"
+#     setter = "bar"

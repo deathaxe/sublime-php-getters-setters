@@ -93,13 +93,6 @@ _default_ : **false**
 
 _description_: ignore visibility for setters generation
 
-### user_templates
-_type_   : **array**
-
-_default_: **[]**
-
-_description_: the user templates to load
-
 ### template
 _type_   : **string**
 
@@ -129,45 +122,47 @@ Creating your own template
 
 * Make a directory called ```[package-dir]/PHP Getters and Setters```.
 * Put the following in a file at ```[package-dir]/PHP Getters and Setters/user_templates.py```.
-  ```
-class myTemplate(object):
-    name = "myTemplate"
-    style = 'camelCase' # can also be snakeCase
-    getter = """
-    /**
-    * Gets the %(description)s.
-    *
-    * @return %(type)s
-    */
-    public function get%(normalizedName)s()
-    {
-        return $this->%(name)s;
-    }
-"""
 
-    setter = """
-    /**
-    * Sets the %(description)s.
-    *
-    * @param %(type)s $%(name)s the %(humanName)s
-    *
-    * @return self
-    */
-    public function set%(normalizedName)s(%(typeHint)s $%(name)s)
-    {
-        $this->%(name)s = $%(name)s;
-    }
-"""
+  ```py
+  from .plugin import BaseTemplate
+
+  class MyTemplate(BaseTemplate):
+       style = 'camelCase' # can also be snakeCase
+       getter = """
+       /**
+       * Gets the %(description)s.
+       *
+       * @return %(type)s
+       */
+       public function get%(normalizedName)s()
+       {
+           return $this->%(name)s;
+       }
+   """
+   
+       setter = """
+       /**
+       * Sets the %(description)s.
+       *
+       * @param %(type)s $%(name)s the %(humanName)s
+       *
+       * @return self
+       */
+       public function set%(normalizedName)s(%(typeHint)s $%(name)s)
+       {
+           $this->%(name)s = $%(name)s;
+       }
+  """
   ```
 * Edit the parts between setter and getter how you want.
-* Edit your user settings for this package. On OSX that's ```Preferences | Package Settings | PHP Getters and Setters | Settings - User```.
+* Edit your user settings for this package: `Preferences > Package Settings > PHP Getters and Setters`.
 * Add the following settings
-  ```
-    // user defined templates to load
-    "registerTemplates" : [ "myTemplate" ],
-
-    // the template used to generate code
-    "template" : "myTemplate",
+  ```jsonc
+  {
+      // the template used to generate code
+      // Template class name without trailing `Template`.
+      "template" : "My",
+  }
   ```
  * restart sublime to use the new template
 

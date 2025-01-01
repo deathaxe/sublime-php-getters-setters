@@ -9,8 +9,7 @@
 	"type_hint_ignore": ["mixed", "int", "integer", "double", "float", "number", "string", "boolean", "bool", "numeric", "unknown"],
 
 	// the template used to generate code
+	// Default templates are:
+	// "PSR2", "CamelCase", "CamelCaseFluent", "SnakeCase", "SnakeCaseFluent"
 	"template": "PSR2",
-
-	// user defined templates to load
-	"user_templates": [],
 }
