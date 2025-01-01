@@ -58,13 +58,7 @@ class Variable:
         return self.visibility
 
     def getVisibilityPrefix(self):
-        visibility = self.visibility
-        Prefix = ""
-
-        if visibility == "private":
-            Prefix = "_"
-
-        return Prefix
+        return "_" if self.visibility == "private" else ""
 
     def getParam(self):
         name = self.name
@@ -75,35 +69,29 @@ class Variable:
         return name
 
     def getHumanName(self):
-        style = self.style
         name = self.getName()
 
-        if "camelCase" == style:
-            # FIXME how does this differ from the else?
-            name = " ".join(re.findall(r"(?:[^_a-z]{0,2})[^_A-Z]+", name)).lower()
-        else:
-            name = name.replace("_", " ")
+        if self.style == "camelCase":
+            return " ".join(re.findall(r"(?:[^_a-z]{0,2})[^_A-Z]+", name)).lower()
 
-        return name
+        return name.replace("_", " ")
 
     def getDescription(self):
-        if self.description is None or "" == self.description:
+        if not self.description:
             self.description = "value of %s" % self.getName()  # get description from name
         return self.description
 
     def getPartialFunctionName(self):
-        style = self.style
         name = self.getName()
-        length = len(name)
 
-        if length > 1 and name[0] == "_" and name[1].islower() and name[2].isupper():
+        if name and name[0] == "_" and name[1].islower() and name[2].isupper():
             name = name[2:]  # _aTest
-        elif length > 1 and (name[0].islower() and name[1].isupper()):
+        elif name and (name[0].islower() and name[1].isupper()):
             name = name[1:]  # aTest
-        elif length > 1 and (name[0] == "_"):
+        elif name and (name[0] == "_"):
             name = name[1:]  # _test OR _Test
 
-        if "camelCase" == style:
+        if self.style == "camelCase":
             var = re.sub(r"_([a-z])", lambda pat: pat.group(1).upper(), name)
             var = var[0].upper() + var[1:]
             var = var.replace("_", "")
@@ -113,38 +101,43 @@ class Variable:
         return var
 
     def getGetterPrefix(self):
-        return "is" if "bool" in self.type else "get"
+        return "is" if self.type and "bool" in self.type else "get"
 
     def getGetterFunctionName(self):
-        style = self.style
-        getterPrefix = self.getGetterPrefix()
+        if self.style == "camelCase":
+            return self.getGetterPrefix() + self.getPartialFunctionName()
 
-        if "camelCase" == style:
-            return getterPrefix + "%s" % self.getPartialFunctionName()
-
-        return getterPrefix + "_%s" % self.getPartialFunctionName()
+        return self.getGetterPrefix() + "_" + self.getPartialFunctionName()
 
     def getSetterPrefix(self):
         return "set"
 
     def getSetterFunctionName(self):
-        style = self.style
-        visPrefix = self.getVisibilityPrefix()
-        setterPrefix = self.getSetterPrefix()
+        if self.style == "camelCase":
+            return (
+                self.getVisibilityPrefix()
+                + self.getSetterPrefix()
+                + self.getPartialFunctionName()
+            )
 
-        if "camelCase" == style:
-            return visPrefix + setterPrefix + "%s" % self.getPartialFunctionName()
-
-        return visPrefix + setterPrefix + "_%s" % self.getPartialFunctionName()
+        return (
+            self.getVisibilityPrefix()
+            + self.getSetterPrefix()
+            + "_"
+            + self.getPartialFunctionName()
+        )
 
     def getType(self):
         return self.type
 
     def getTypeHint(self):
+        if not self.type:
+            return ""
+
         if self.type in prefs().get("type_hint_ignore", []):
             return ""
 
-        if self.type.find(" ") > -1 or self.type.find(r"|") > -1:
+        if " " in self.type or "|" in self.type:
             msg("'%s' is more than one type, switching to no type hint" % self.type)
             return ""
 
@@ -164,7 +157,7 @@ class DocBlock:
         return name in self.tags
 
     def hasDescription(self):
-        return len(self.description) > 0
+        return bool(self.description)
 
     def addTag(self, name, value):
         self.tags[name] = value
@@ -182,10 +175,9 @@ class DocBlock:
         return self.description
 
     def fromText(self, content):
-        lines = content.split("\n")
         description = []
 
-        for line in lines:
+        for line in content.split("\n"):
             line = line.strip(" \t*/").rstrip(".")
             if line.startswith("@"):
                 nameMatches = re.findall(r"\@(\w+) (:?.*)[ ]?.*", line)
