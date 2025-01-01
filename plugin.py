@@ -380,50 +380,38 @@ class Base(sublime_plugin.TextCommand):
 
 
 class PhpGenerateFor(Base):
-    what = "getter"
+    cmd = "noop"
 
     def run(self, edit):
-        self.edit = edit
-
         parser = Parser(self.getContent())
 
-        self.vars = []
+        items = []
 
         for variable in parser.getClassVariables():
             item = [variable.getName(), variable.getDescription()]
-            self.vars.append(item)
+            items.append(item)
+
+        def on_done(index):
+            if index == -1:  # escaped
+                return
+            name = items[index][0]
+            self.view.run_command(self.cmd, {"name": name})
 
         window = self.view.window()
         if window:
-            window.show_quick_panel(self.vars, self.write)
-
-    def write(self, index):
-        if index == -1:  # escaped
-            return
-        name = self.vars[index][0]
-        parser = Parser(self.getContent())
-        for variable in parser.getClassVariables():
-            if name == variable.getName():
-                if "getter" == self.what:
-                    # code = self.generateGetterFunction(parser, variable)
-                    self.view.run_command("php_generate_getters", {"name": name})
-                elif "setter" == self.what:
-                    self.view.run_command("php_generate_setters", {"name": name})
-                else:
-                    self.view.run_command("php_generate_getters_setters", {"name": name})
-                # self.writeAtEnd(self.edit, code)
+            window.show_quick_panel(items, on_done)
 
 
 class PhpGenerateGetterForCommand(PhpGenerateFor):
-    what = "getter"
+    cmd = "php_generate_getters"
 
 
 class PhpGenerateSetterForCommand(PhpGenerateFor):
-    what = "setter"
+    cmd = "php_generate_setters"
 
 
 class PhpGenerateGetterSetterForCommand(PhpGenerateFor):
-    what = "getter-setter"
+    cmd = "php_generate_getters_setters"
 
 
 class PhpGenerateGettersCommand(Base):
